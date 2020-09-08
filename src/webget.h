@@ -2,25 +2,37 @@
 #define WEBGET_H_INCLUDED
 
 #include <string>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-
-#ifdef _WIN32
-#include <ws2tcpip.h>
-#endif // _WIN32
-
-#ifndef CURLINFO_TOTAL_TIME_T
-#define CURLINFO_TOTAL_TIME_T CURLINFO_TOTAL_TIME
-#endif // CURLINFO_TOTAL_TIME_T
+#include <map>
 
 #include "misc.h"
-#include "nodeinfo.h"
 
-std::string webGet(std::string url, std::string proxy = "");
-std::string httpGet(std::string host, std::string addr, std::string uri);
-std::string httpsGet(std::string host, std::string addr, std::string uri);
-long curlPost(std::string url, std::string data, std::string proxy);
-int websitePing(nodeInfo *node, std::string url, std::string local_addr, int local_port, std::string user, std::string pass);
-std::string buildSocks5ProxyString(std::string addr, int port, std::string username, std::string password);
+struct FetchArgument
+{
+    const std::string url;
+    const std::string proxy;
+    string_map *request_headers = NULL;
+    const unsigned int cache_ttl = 0;
+};
+
+struct FetchResult
+{
+    int *status_code;
+    std::string *content = NULL;
+    std::string *response_headers = NULL;
+};
+
+std::string webGet(const std::string &url, const std::string &proxy = "", unsigned int cache_ttl = 0, std::string *response_headers = NULL, string_map *request_headers = NULL);
+int webPost(const std::string &url, const std::string &data, const std::string &proxy, const string_array &request_headers, std::string *retData);
+int webPatch(const std::string &url, const std::string &data, const std::string &proxy, const string_array &request_headers, std::string *retData);
+std::string buildSocks5ProxyString(const std::string &addr, int port, const std::string &username, const std::string &password);
+
+// Unimplemented: (CURLOPT_HTTPHEADER: Host:)
+std::string httpGet(const std::string &host, const std::string &addr, const std::string &uri);
+std::string httpsGet(const std::string &host, const std::string &addr, const std::string &uri);
+
+static inline bool isLink(const std::string &url)
+{
+    return startsWith(url, "https://") || startsWith(url, "http://") || startsWith(url, "data:");
+}
 
 #endif // WEBGET_H_INCLUDED

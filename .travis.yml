@@ -5,9 +5,11 @@ matrix:
     - name: "macOS Build"
       os: osx
       compiler: clang
-      osx_image: xcode10.3
+      osx_image: xcode11.3
       script:
-      - bash scripts/build.macos.release.sh
+        - bash scripts/build.macos.release.sh
+      before_deploy:
+        - tar czf stairspeedtest_reborn_darwin64.tar.gz stairspeedtest
       deploy:
         provider: releases
         api_key: "$GITHUB_OAUTH_TOKEN"
@@ -19,9 +21,9 @@ matrix:
     - name: "Linux x86 Build"
       services: docker
       script:
-      - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG multiarch/alpine:x86-edge /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
+        - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG multiarch/alpine:x86-latest-stable /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
       before_deploy:
-        - mv stairspeedtest_reborn_linux64.tar.gz stairspeedtest_reborn_linux32.tar.gz
+        - tar czf stairspeedtest_reborn_linux32.tar.gz stairspeedtest
       deploy:
         provider: releases
         api_key: "$GITHUB_OAUTH_TOKEN"
@@ -33,7 +35,9 @@ matrix:
     - name: "Linux x86_64 Build"
       services: docker
       script:
-      - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG alpine:latest /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
+        - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG multiarch/alpine:amd64-latest-stable /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
+      before_deploy:
+        - tar czf stairspeedtest_reborn_linux64.tar.gz stairspeedtest
       deploy:
         provider: releases
         api_key: "$GITHUB_OAUTH_TOKEN"
@@ -44,11 +48,11 @@ matrix:
           tags: true
     - name: "Linux ARMHF Build"
       services: docker
+      arch: arm64
       script:
-      - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG multiarch/alpine:armhf-edge /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
+        - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG multiarch/alpine:armhf-latest-stable /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
       before_deploy:
-        - mv stairspeedtest_reborn_linux64.tar.gz stairspeedtest_reborn_armhf.tar.gz
+        - tar czf stairspeedtest_reborn_armhf.tar.gz stairspeedtest
       deploy:
         provider: releases
         api_key: "$GITHUB_OAUTH_TOKEN"
@@ -61,9 +65,9 @@ matrix:
       arch: arm64
       services: docker
       script:
-      - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG alpine:latest /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
+        - docker run -v $TRAVIS_BUILD_DIR:/root/workdir -e TRAVIS_BRANCH -e TRAVIS_TAG multiarch/alpine:aarch64-latest-stable /bin/sh -c "apk add bash git && cd /root/workdir && bash scripts/build.alpine.release.sh"
       before_deploy:
-        - mv stairspeedtest_reborn_linux64.tar.gz stairspeedtest_reborn_arm64.tar.gz
+        - tar czf stairspeedtest_reborn_arm64.tar.gz stairspeedtest
       deploy:
         provider: releases
         api_key: "$GITHUB_OAUTH_TOKEN"

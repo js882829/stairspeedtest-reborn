@@ -2,8 +2,10 @@
 #define NODEINFO_H_INCLUDED
 
 #include <string>
+#include <future>
 
 #include "geoip.h"
+#include "misc.h"
 
 struct nodeInfo
 {
@@ -28,10 +30,11 @@ struct nodeInfo
     int rawSitePing[10] = {};
     std::string sitePing = "0.00";
     std::string traffic;
-    geoIPInfo inboundGeoIP;
-    geoIPInfo outboundGeoIP;
+    FutureHelper<geoIPInfo> inboundGeoIP;
+    FutureHelper<geoIPInfo> outboundGeoIP;
     std::string testFile;
     std::string ulTarget;
+    FutureHelper<std::string> natType {"Unknown"};
 };
 
 #endif // NODEINFO_H_INCLUDED

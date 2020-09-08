@@ -33,14 +33,16 @@ IF(HAVE_MSG_NOSIGNAL)
 ENDIF()
 
 ADD_EXECUTABLE(stairspeedtest 
+	src/confbuild.cpp
 	src/geoip.cpp
 	src/logger.cpp
 	src/main.cpp
+	src/md5.cpp
 	src/misc.cpp
 	src/multithread_test.cpp
-	src/printout.cpp
+	src/ntt.cpp
+	src/printmsg.cpp
 	src/processes.cpp
-	src/rapidjson_extra.cpp
 	src/renderer.cpp
 	src/rulematch.cpp
 	src/socket.cpp
@@ -77,7 +79,7 @@ TARGET_LINK_LIBRARIES(stairspeedtest ${OPENSSL_LIBRARIES})
 FIND_PACKAGE(Rapidjson REQUIRED)
 INCLUDE_DIRECTORIES(${RAPIDJSON_INCLUDE_DIRS})
 
-FIND_PACKAGE(PNG 1.6 REQUIRED)
+FIND_PACKAGE(PNG REQUIRED)
 INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIRS})
 TARGET_LINK_LIBRARIES(stairspeedtest ${PNG_LIBRARIES})
 ADD_DEFINITIONS(${PNG_DEFINITIONS})

@@ -1,6 +1,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <mutex>
 
 #include "logger.h"
 #include "version.h"
@@ -14,6 +15,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif // _WIN32
+
+typedef std::lock_guard<std::mutex> guarded_mutex;
+std::mutex logger_mutex;
 
 std::string curtime, result_content;
 std::string resultPath, logPath;
@@ -71,8 +75,9 @@ void resultInit()
     resultPath = "results" PATH_SLASH + curtime + ".log";
 }
 
-void writeLog(int type, std::string content)
+void writeLog(int type, std::string content, int level)
 {
+    guarded_mutex guard(logger_mutex);
     std::string timestr = "[" + getTime(2) + "]", typestr = "[UNKNOWN]";
     switch(type)
     {
@@ -109,8 +114,10 @@ void writeLog(int type, std::string content)
     case LOG_TYPE_RENDER:
         typestr = "[RENDER]";
         break;
+    case LOG_TYPE_STUN:
+        typestr = "[STUN]";
     }
-    content = timestr + typestr + content;
+    content = timestr + typestr + content + "\n";
     fileWrite(logPath, content, false);
 }
 
@@ -145,7 +152,7 @@ void writeResult(nodeInfo *node, bool export_with_maxspeed)
 
 void resultEOF(std::string traffic, int worknodes, int totnodes)
 {
-    result_content += "Traffic used : " + traffic + ". Working Node(s) : [" + to_string(worknodes) + "/" + to_string(totnodes) + "]\n";
+    result_content += "Traffic used : " + traffic + ". Working Node(s) : [" + std::to_string(worknodes) + "/" + std::to_string(totnodes) + "]\n";
     result_content += "Generated at " + getTime(3) + "\n";
     result_content += "By Stair Speedtest " VERSION ".\n";
     writeToFile(resultPath,result_content,true);
@@ -153,7 +160,7 @@ void resultEOF(std::string traffic, int worknodes, int totnodes)
 
 void exportResult(std::string outpath, std::string utiljspath, std::string stylepath, bool export_with_maxspeed)
 {
-    if(utiljspath == "")
+    if(utiljspath.empty())
         return;
     std::string strInput;
     vector<std::string> params;
@@ -179,7 +186,7 @@ void exportResult(std::string outpath, std::string utiljspath, std::string style
     outfile<<"</script></head><body onload=\"loadevent()\"><table id=\"table\" rules=\"all\">";
     while(getline(result_content_stream, strInput))
     {
-        if(strInput == "")
+        if(strInput.empty())
             continue;
         if(strFind(strInput, "avgspeed"))
             continue;

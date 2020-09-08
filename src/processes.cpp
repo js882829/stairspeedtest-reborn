@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <queue>
 #include <signal.h>
 
 #include "misc.h"
@@ -12,7 +13,8 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #else
-#include <spawn.h>
+//#include <spawn.h>
+#include <sys/wait.h>
 #endif // _WIN32
 
 #include "processes.h"
@@ -23,7 +25,7 @@ typedef pid_t HANDLE;
 
 //Runner runner;
 
-HANDLE hProc = 0;
+std::queue<HANDLE> handles;
 #ifdef _WIN32
 HANDLE job = 0;
 #else
@@ -75,7 +77,7 @@ bool runProgram(std::string command, std::string runpath, bool wait)
     {
         GetCurrentDirectory(512, curdir);
         path = std::string(curdir) + "\\";
-        if(runpath != "")
+        if(runpath.size())
             path += runpath + "\\";
     }
     cmdstr = const_cast<char*>(command.data());
@@ -84,7 +86,7 @@ bool runProgram(std::string command, std::string runpath, bool wait)
     if(retval == FALSE)
         return false;
 
-    //sleep(500); //slow down to prevent some problem
+    sleep(600); //slow down to prevent some problem
     DWORD ExitCode = STILL_ACTIVE;
 
     do
@@ -102,18 +104,16 @@ bool runProgram(std::string command, std::string runpath, bool wait)
     AssignProcessToJobObject(job, pi.hProcess);
     SetInformationJobObject(job, JobObjectExtendedLimitInformation, &job_limits, sizeof(job_limits));
 
-    hProc = pi.hProcess;
+    // save handle to queue
+    handles.push(pi.hProcess);
     if(wait)
     {
-        WaitForSingleObject(hProc, INFINITE);
-        CloseHandle(hProc);
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(pi.hProcess);
     }
     return retval;
 
 #else
-    char curdir[1024] = {};
-    getcwd(curdir, 1023);
-    chdir(runpath.data());
     /*
     const char* cargs[4] = {"sh", "-c", command.data(), NULL};
     posix_spawn_file_actions_t file_actions;
@@ -123,8 +123,28 @@ bool runProgram(std::string command, std::string runpath, bool wait)
     posix_spawn(&hProc, "/bin/sh", &file_actions, NULL, const_cast<char* const*>(cargs), NULL);
     */
     command = command + " > /dev/null 2>&1";
-    pPipe = popen(command.data(), "r");
-    chdir(curdir);
+    //pPipe = popen(command.data(), "r");
+    HANDLE pid;
+    int status;
+    switch(pid = fork())
+    {
+    case -1: /// error
+        return false;
+    case 0: /// child
+    {
+        setpgid(0, 0);
+        char curdir[1024] = {};
+        getcwd(curdir, 1023);
+        chdir(runpath.data());
+        execlp("sh", "sh", "-c", command.data(), (char*)NULL);
+        _exit(127);
+    }
+    default: /// parent
+        if(wait)
+            waitpid(pid, &status, 0);
+        else
+            handles.emplace(pid);
+    }
     return true;
 #endif // _WIN32
 
@@ -132,16 +152,21 @@ bool runProgram(std::string command, std::string runpath, bool wait)
 
 void killByHandle()
 {
-#ifdef _WIN32
-    if(hProc != NULL)
+    while(!handles.empty())
     {
-        if(TerminateProcess(hProc, 0))
-            CloseHandle(hProc);
-    }
+        HANDLE hProc = handles.front();
+#ifdef _WIN32
+        if(hProc != NULL)
+        {
+            if(TerminateProcess(hProc, 0))
+                CloseHandle(hProc);
+        }
 #else
-    if(hProc != 0)
-        kill(hProc, SIGTERM);
+        if(hProc != 0)
+            kill(hProc, SIGINT);
 #endif // _WIN32
+        handles.pop();
+    }
 }
 
 /*
