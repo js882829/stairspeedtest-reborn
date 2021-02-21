@@ -569,9 +569,9 @@ void saveResult(std::vector<nodeInfo> &nodes)
         ini.Set("AvgSpeed", x.avgSpeed);
         ini.Set("MaxSpeed", x.maxSpeed);
         ini.Set("ULSpeed", x.ulSpeed);
-        ini.SetLong("UsedTraffic", x.totalRecvBytes);
-        ini.SetLong("GroupID", x.groupID);
-        ini.SetLong("ID", x.id);
+        ini.SetNumber<unsigned long long>("UsedTraffic", x.totalRecvBytes);
+        ini.SetNumber<int>("GroupID", x.groupID);
+        ini.SetNumber<int>("ID", x.id);
         ini.SetBool("Online", x.online);
         ini.SetArray("RawPing", ",", x.rawPing);
         ini.SetArray("RawSitePing", ",", x.rawSitePing);
@@ -647,7 +647,7 @@ int singleTest(nodeInfo &node)
 
     if(!rpcmode)
         printMsg(SPEEDTEST_MESSAGE_GOTSERVER, rpcmode, id, node.group, node.remarks, std::to_string(node_count));
-    sleep(200); /// wait for client startup
+    sleep(1000); /// wait for client startup
     writeLog(LOG_TYPE_INFO, "Now started fetching GeoIP info...");
     printMsg(SPEEDTEST_MESSAGE_STARTGEOIP, rpcmode, id);
     node.inboundGeoIP.set(std::async(std::launch::async, [node](){ return getGeoIPInfo(node.server, ""); }));
